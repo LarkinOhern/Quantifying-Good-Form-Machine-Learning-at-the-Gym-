@@ -3,3 +3,4 @@
 
 
 This project analyzes wearable data to asess the form of subjects doing biceps curls
+Who says the gym is only for jocks?
