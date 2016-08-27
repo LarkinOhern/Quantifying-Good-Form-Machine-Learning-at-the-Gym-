@@ -2,3 +2,4 @@
 
 
 
+This project analyzes wearable data to asess the form of subjects doing biceps curls
