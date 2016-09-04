@@ -1,0 +1,103 @@
+---
+title: 'Counting Correct Curls: Telemetry and Form in Weightlifting'
+author: "Larkin O'Hern"
+date: "September 4, 2016"
+output: html_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(caret)
+library(tibble)
+library(purrr)
+library(rattle)
+###read in the data
+train<-read.csv("trainingdata.csv", header = TRUE, sep=",", stringsAsFactors = F)
+
+train$classe<-factor(train$classe)
+train<-train %>% map_if(is.character, as.numeric) %>% tbl_df()
+
+###I chose these vars bc they were the only ones present (w/o NA) in the test set.  There is no reason to use predictors that aren't available inyour test set.
+train<-select(train,roll_belt, pitch_belt, yaw_belt, total_accel_belt, gyros_belt_x, gyros_belt_y, gyros_belt_z,
+              accel_belt_x,accel_belt_y, accel_belt_z, magnet_belt_x,magnet_belt_y, magnet_belt_z, roll_arm,
+              pitch_arm, yaw_arm, total_accel_arm,gyros_arm_x, gyros_arm_y, gyros_arm_z, accel_arm_y, accel_arm_x,
+              accel_arm_z, magnet_arm_x, magnet_arm_y, magnet_arm_z, roll_dumbbell, pitch_dumbbell,
+              yaw_dumbbell, classe)
+  
+
+
+```
+
+
+
+```{r cross validation, echo=FALSE}
+inTrain<-createDataPartition(y=train$classe, p=.7, list=FALSE)
+training<-train[inTrain,]
+testing<-train[-inTrain,]
+```
+
+###Executive Summary:
+
+I set out to develop a model to identify common classes of form error in weightlifting-specifically bicep curls, using telemetry data from a variety of monitors worn by the subjects as they performed the exercise.  Of the models I tested, my support vector machine performed best-correctly identifying 84% of the repetitions in the my holdout data.
+
+###The Data:
+
+The data for the this analysis were generously made available by Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. and more information as well as the datasets is available [here](http://groupware.les.inf.puc-rio.br/har#sbia_paper_section). The data consist of `r dim(train)[[1]]` observations of `r dim(train)[[2]]` variables.  The variables captured telemetry data from a large number of monitors worn by the subjects and, critically, were marked according to the 'classe' of curl being performed.  Each classe corresponds to one of five common form types.  The observations were distributed relatively evenly across the five types though as the table shows-classe A is somewhat over represented.
+
+
+###Cross Validation
+
+Before I did any exploratory analysis is split the data into training and test sets with 70% of the data in the training set and30% in the test set.  
+
+`r table(train$classe)`
+
+###The Models:
+
+I started with a tree model because I appreciate the interpretability-especially early on in a project.  However, my tree models never got much above 50% accuracy-even on the training data.
+However, given five evenly distributed classes that's still a more than 2X improvement of randomly assigning a classe.  
+
+The plot below maps the tree logic and the confusion matrix breaks out the accuracy by classe. 
+
+```{r try a tree model, echo=FALSE, cache=FALSE, message=FALSE}
+modFit_rpart<-train(classe~.,method="rpart", data=training, na.action = na.pass)
+
+fancyRpartPlot(modFit_rpart$finalModel)
+modFit_rpart$results
+
+rpart_predicts<-predict(modFit_rpart, testing)
+
+rpart_table<-table(rpart_predicts, testing$classe)
+
+confusionMatrix(rpart_table)
+
+```
+
+
+The support vector machine predicted classes significantly better than the tree model-achieving 84% accuracy on the test data.
+
+```{r now svm, echo=FALSE, cache=TRUE}
+library(e1071)
+train_svm<-svm(classe~.,training)
+svm_testing_preds<-predict(train_svm, testing)
+svm_table<-table(svm_testing_preds, testing$classe)
+confusionMatrix(svm_table)
+
+```
+
+
+The svm model under predicts class B while the tree model over predicts it as you can see from the tables below.  An ensemble model might have corrected for that, but the accuracy of the svm overwhelms the tree model so mixing might have decreased the accuracy of on the other classes. 
+
+```{r compare tables, echo=FALSE }
+
+train_class_table<-table(testing$classe)
+svm_class_table<-table(svm_testing_preds)
+rpart_pred_table<-table(rpart_predicts)
+
+
+
+
+
+```
+
+
+
