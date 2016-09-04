@@ -88,10 +88,10 @@ confusionMatrix(svm_table)
 The svm model under predicts class B while the tree model over predicts it as you can see from the tables below.  An ensemble model might have corrected for that, but the accuracy of the svm overwhelms the tree model so mixing might have decreased the accuracy of on the other classes. 
 
 ```{r compare tables, echo=FALSE }
-
-train_class_table<-table(testing$classe)
-svm_class_table<-table(svm_testing_preds)
-rpart_pred_table<-table(rpart_predicts)
+#Test Classes
+table(testing$classe)
+table(svm_testing_preds)
+table(rpart_predicts)
 
 
 
